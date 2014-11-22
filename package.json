@@ -1,10 +1,11 @@
 {
-  "name": "ionic",
+  "name": "ionic-framework",
   "private": false,
   "version": "1.0.0-beta.13",
   "codename": "lanthanum-leopard",
+  "main": "./release/js/ionic.bundle.js",
   "repository": {
-    "url": "git://github.com/driftyco/ionic.git"
+    "url": "git://github.com/donaldpcook/ionic.git"
   },
   "devDependencies": {
     "canonical-path": "0.0.2",
@@ -61,5 +62,26 @@
     {
       "type": "MIT"
     }
-  ]
+  ],
+  "description": "[![Build Status](https://circleci.com/gh/driftyco/ionic.png?circle-token=7388822b8691078560c4f057d8eb0df0e8d7f1b5)](https://circleci.com/gh/driftyco/ionic)",
+  "bugs": {
+    "url": "https://github.com/donaldpcook/ionic/issues"
+  },
+  "homepage": "https://github.com/donaldpcook/ionic",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ionic",
+    "ionic-framwork",
+    "angular",
+    "cordova",
+    "mobile",
+    "hybrid"
+  ],
+  "author": "driftyco",
+  "license": "ISC"
 }
