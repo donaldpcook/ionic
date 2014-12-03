@@ -21,13 +21,37 @@ IonicModule
 .directive('ionSlide', ['$timeout', function($timeout) {
   return {
     restrict: 'E',
-    controller: '$ionSlide',
-    require: '^ionSlideBox',
-    scope: true,
+    require: ['^ionSlideBox', '^^?ionSlide'],
+    transclude: true,
+    controller: angular.noop,
     link: postLink
   };
 
-  function postLink(scope, element, attr, slideBoxCtrl) {
+  function postLink(scope, element, attr, ctrls, transclude) {
+    var slideBoxCtrl = ctrls[0];
+    var slideCtrl = ctrls[1];
+
+    if (slideCtrl) {
+      throw new Error('You cannot have an ion-slide within another ion-slide!');
+    }
+
     element.addClass('slider-slide');
+
+    slideBoxCtrl.onAddSlide();
+
+    var childScope = scope.$new();
+    element.data('$ionSlideScope', childScope);
+
+    // Disconnect by default, will be reconnected if shown
+    // ionic.Utils.disconnectScope(childScope);
+
+    transclude(childScope, function(contents) {
+      element.append(contents);
+    });
+
+    scope.$on('$destroy', function() {
+      slideBoxCtrl.onRemoveSlide();
+      element.remove();
+    });
   }
 }]);

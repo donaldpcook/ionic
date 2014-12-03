@@ -21,9 +21,10 @@ IonicModule
   '$state',
   '$location',
   '$window',
+  '$timeout',
   '$ionicViewSwitcher',
   '$ionicNavViewDelegate',
-function($rootScope, $state, $location, $window, $ionicViewSwitcher, $ionicNavViewDelegate) {
+function($rootScope, $state, $location, $window, $timeout, $ionicViewSwitcher, $ionicNavViewDelegate) {
 
   // history actions while navigating views
   var ACTION_INITIAL_VIEW = 'initialView';
@@ -40,7 +41,7 @@ function($rootScope, $state, $location, $window, $ionicViewSwitcher, $ionicNavVi
   var DIRECTION_NONE = 'none';
 
   var stateChangeCounter = 0;
-  var lastStateId, nextViewOptions, forcedNav;
+  var lastStateId, nextViewOptions, nextViewExpireTimer, forcedNav;
 
   var viewHistory = {
     histories: { root: { historyId: 'root', parentHistoryId: null, stack: [], cursor: -1 } },
@@ -128,7 +129,7 @@ function($rootScope, $state, $location, $window, $ionicViewSwitcher, $ionicNavVi
       // nothing found keep climbing up
       parentScope = parentScope.$parent;
     }
-    // no history for for the parent, use the root
+    // no history for the parent, use the root
     return { historyId: 'root', scope: $rootScope };
   }
 
@@ -364,6 +365,7 @@ function($rootScope, $state, $location, $window, $ionicViewSwitcher, $ionicNavVi
         hist.stack.push(viewHistory.views[viewId]);
       }
 
+      $timeout.cancel(nextViewExpireTimer);
       if (nextViewOptions) {
         if (nextViewOptions.disableAnimate) direction = DIRECTION_NONE;
         if (nextViewOptions.disableBack) viewHistory.views[viewId].backViewId = null;
@@ -441,7 +443,10 @@ function($rootScope, $state, $location, $window, $ionicViewSwitcher, $ionicNavVi
      * @description The app's current view.
      * @returns {object} Returns the current view.
      */
-    currentView: function() {
+    currentView: function(view) {
+      if (arguments.length) {
+        viewHistory.currentView = view;
+      }
       return viewHistory.currentView;
     },
 
@@ -624,11 +629,17 @@ function($rootScope, $state, $location, $window, $ionicViewSwitcher, $ionicNavVi
      */
     nextViewOptions: function(opts) {
       if (arguments.length) {
+        $timeout.cancel(nextViewExpireTimer);
         if (opts === null) {
           nextViewOptions = opts;
         } else {
           nextViewOptions = nextViewOptions || {};
           extend(nextViewOptions, opts);
+          if (nextViewOptions.expire) {
+            nextViewExpireTimer = $timeout(function(){
+              nextViewOptions = null;
+            }, nextViewOptions.expire);
+          }
         }
       }
       return nextViewOptions;
@@ -636,6 +647,24 @@ function($rootScope, $state, $location, $window, $ionicViewSwitcher, $ionicNavVi
 
     isAbstractEle: function(ele) {
       return !!(ele && (isAbstractTag(ele) || isAbstractTag(ele.children())));
+    },
+
+    isActiveScope: function(scope) {
+      if (!scope) return false;
+
+      var climbScope = scope;
+      var currentHistoryId = this.currentHistoryId();
+      while (climbScope) {
+        if (climbScope.$$disconnected) {
+          return false;
+        }
+        if (currentHistoryId && currentHistoryId == climbScope.$historyId) {
+          return true;
+        }
+        climbScope = climbScope.$parent;
+      }
+
+      return currentHistoryId ? currentHistoryId == 'root' : true;
     }
 
   };

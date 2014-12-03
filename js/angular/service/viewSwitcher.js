@@ -163,22 +163,21 @@ function($timeout, $document, $q, $ionicClickBlock, $ionicConfig, $ionicNavBarDe
         },
 
         render: function(registerData, callback) {
-          var enteringData = getTransitionData(viewLocals, enteringEle, registerData.direction, enteringView);
-          var transitionFn = $ionicConfig.transitions.views[enteringData.transition];
+          // disconnect the leaving scope before reconnecting or creating a scope for the entering view
+          leavingEle && ionic.Utils.disconnectScope(leavingEle.scope());
 
           if (alreadyInDom) {
             // it was already found in the DOM, just reconnect the scope
             ionic.Utils.reconnectScope(enteringEle.scope());
-
-            // set the styles of where this element will end up going so
-            // the DOM has some time to render its correct starting point
-            transitionFn(enteringEle, null, enteringData.direction, false).run(0);
 
           } else {
             // the entering element is not already in the DOM
             // set that the entering element should be "staged" and its
             // styles of where this element will go before it hits the DOM
             navViewAttr(enteringEle, VIEW_STATUS_STAGED);
+
+            var enteringData = getTransitionData(viewLocals, enteringEle, registerData.direction, enteringView);
+            var transitionFn = $ionicConfig.transitions.views[enteringData.transition];
             transitionFn(enteringEle, null, enteringData.direction, true).run(0);
 
             historyCursorAttr(enteringEle, registerData.isHistoryRoot ? HISTORY_ROOT : HISTORY_AFTER_ROOT);
@@ -200,7 +199,7 @@ function($timeout, $document, $q, $ionicClickBlock, $ionicConfig, $ionicNavBarDe
           // update that this view was just accessed
           enteringEle.data(DATA_VIEW_ACCESSED, Date.now());
 
-          $timeout(callback, 16);
+          callback && callback();
         },
 
         transition: function(direction, enableBack) {
@@ -228,8 +227,7 @@ function($timeout, $document, $q, $ionicClickBlock, $ionicConfig, $ionicNavBarDe
           if (viewTransition.shouldAnimate) {
             // 2) attach transitionend events (and fallback timer)
             enteringEle.on(TRANSITIONEND_EVENT, transitionComplete);
-            leavingEle && leavingEle.on(TRANSITIONEND_EVENT, transitionComplete);
-            enteringEle.data(DATA_FALLBACK_TIMER, $timeout(transitionComplete, 750));
+            enteringEle.data(DATA_FALLBACK_TIMER, $timeout(transitionComplete, 1000));
           }
 
           // 3) stage entering element, opacity 0, no transition duration
@@ -268,8 +266,8 @@ function($timeout, $document, $q, $ionicClickBlock, $ionicConfig, $ionicNavBarDe
             transitionComplete.x = true;
 
             enteringEle.off(TRANSITIONEND_EVENT, transitionComplete);
-            leavingEle && leavingEle.off(TRANSITIONEND_EVENT, transitionComplete);
             $timeout.cancel(enteringEle.data(DATA_FALLBACK_TIMER));
+            leavingEle && $timeout.cancel(leavingEle.data(DATA_FALLBACK_TIMER));
 
             // 8) emit that the views have finished transitioning
             // each parent nav-view will update which views are active and cached
@@ -344,8 +342,6 @@ function($timeout, $document, $q, $ionicClickBlock, $ionicConfig, $ionicNavBarDe
           }
 
           destroyViewEle(removableEle);
-
-          ionic.Utils.disconnectScope(leavingEle && leavingEle.scope());
 
           if (enteringEle.data(DATA_NO_CACHE)) {
             enteringEle.data(DATA_DESTROY_ELE, true);

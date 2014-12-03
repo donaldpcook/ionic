@@ -38,7 +38,7 @@
  * var myApp = angular.module('reallyCoolApp', ['ionic']);
  *
  * myApp.config(function($ionicConfigProvider) {
- *   $ionicConfigProvider.templates.maxCache(20);
+ *   $ionicConfigProvider.views.maxCache(20);
  *
  *   // note that you can also chain configs
  *   $ionicConfigProvider.backButton.text('Go Back').icon('ion-chevron-left');
@@ -220,6 +220,9 @@ IonicModule
       text: PLATFORM,
       previousTitleText: PLATFORM
     },
+    form: {
+      checkbox: PLATFORM
+    },
     tabs: {
       style: PLATFORM,
       position: PLATFORM
@@ -253,6 +256,10 @@ IonicModule
       icon: 'ion-ios7-arrow-back',
       text: 'Back',
       previousTitleText: true
+    },
+
+    form: {
+      checkbox: 'circle'
     },
 
     tabs: {
@@ -292,6 +299,10 @@ IonicModule
       icon: 'ion-android-arrow-back',
       text: false,
       previousTitleText: false
+    },
+
+    form: {
+      checkbox: 'square'
     },
 
     tabs: {

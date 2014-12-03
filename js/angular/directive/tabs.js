@@ -47,7 +47,8 @@ IonicModule
 .directive('ionTabs', [
   '$ionicTabsDelegate',
   '$ionicConfig',
-function($ionicTabsDelegate, $ionicConfig) {
+  '$ionicHistory',
+function($ionicTabsDelegate, $ionicConfig, $ionicHistory) {
   return {
     restrict: 'E',
     scope: true,
@@ -59,13 +60,12 @@ function($ionicTabsDelegate, $ionicConfig) {
       innerElement.append(tElement.contents());
 
       tElement.append(innerElement)
-              .addClass( 'tabs-' + $ionicConfig.tabs.position() )
-              .addClass( 'tabs-' + $ionicConfig.tabs.style() );
+              .addClass('tabs-' + $ionicConfig.tabs.position() + ' tabs-' + $ionicConfig.tabs.style());
 
       return { pre: prelink, post: postLink };
       function prelink($scope, $element, $attr, tabsCtrl) {
         var deregisterInstance = $ionicTabsDelegate._registerInstance(
-          tabsCtrl, $attr.delegateHandle
+          tabsCtrl, $attr.delegateHandle, tabsCtrl.hasActiveScope
         );
 
         tabsCtrl.$scope = $scope;
@@ -79,7 +79,7 @@ function($ionicTabsDelegate, $ionicConfig) {
           $scope.$hasTabsTop = isTabsTop && !isHidden;
         });
 
-        $scope.$on('$destroy', function(){
+        $scope.$on('$destroy', function() {
           // variable to inform child tabs that they're all being blown away
           // used so that while destorying an individual tab, each one
           // doesn't select the next tab as the active one, which causes unnecessary

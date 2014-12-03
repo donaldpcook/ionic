@@ -30,16 +30,22 @@
  *
  * @param {expression=} selected A model bound to the selected slide index.
  * @param {boolean=} loop Whether the slide box should loop. Default false.
- * @param {number=} auto-play If a positive number, then every time the given number of milliseconds have passed, slideBox will go to the next slide. Set to a non-positive number to disable. Default: -1.
- * @param {expression=} on-slide-changed Expression called whenever the slide is changed.  Is passed a '$slideIndex' variable.
+ * @param {number=} auto-play If a positive number, then every time the given number of
+ * milliseconds have passed, slideBox will go to the next slide. Set to a non-positive number
+ * to disable. Default: -1.
+ * @param {expression=} on-slide-changed Expression called when all currently queued slide
+ * animations finish.  Is passed a '$slideIndex' variable.
+ * @param {expression=} on-slide-start Expression called whenever a slide animation starts.
+ * Is passed a '$slideIndex' variable.
  * @param {string=} delegate-handle The handle used to identify this slideBox with
  * {@link ionic.service:$ionicSlideBoxDelegate}.
  */
 IonicModule
 .directive('ionSlideBox', [
   '$ionicSlideBoxDelegate',
-  '$window',
-function($ionicSlideBoxDelegate, $window) {
+  '$ionicHistory',
+  '$timeout',
+function($ionicSlideBoxDelegate, $ionicHistory, $timeout) {
 
   return {
     restrict: 'E',
@@ -47,14 +53,16 @@ function($ionicSlideBoxDelegate, $window) {
     require: 'ionSlideBox',
     transclude: true,
     scope: {
-      selectedIndex: '=?selected',
-      onSlideChanged: '&'
+      selected: '=?',
+      onSlideChanged: '&',
+      onSlideStart: '&'
     },
     template: '<div class="slider-slides" ng-transclude></div>',
     compile: compile
   };
 
   function compile(element, attr) {
+    element.addClass('slider');
     // DEPRECATED attr.doesContinue
     isDefined(attr.doesContinue) && attr.$set('loop', attr.doesContinue);
 
@@ -62,46 +70,37 @@ function($ionicSlideBoxDelegate, $window) {
   }
 
   function postLink(scope, element, attr, slideBoxCtrl) {
-    element.addClass('slider');
 
-    var deregister = $ionicSlideBoxDelegate._registerInstance(slideBoxCtrl, attr.delegateHandle);
+    var deregister = $ionicSlideBoxDelegate._registerInstance(
+      slideBoxCtrl, attr.delegateHandle, function() {
+        return $ionicHistory.isActiveScope(scope);
+      }
+    );
 
+    listenForSlide();
     watchSelected();
     isDefined(attr.loop) && watchLoop();
     isDefined(attr.autoPlay) && watchAutoPlay();
 
-    var throttledReposition = ionic.animationFrameThrottle(repositionSlideBox);
-    throttledReposition();
-    angular.element($window).on('resize', throttledReposition);
-
-    scope.$on('$destroy', function() {
-      deregister();
-      angular.element($window).off('resize', throttledReposition);
-    });
+    scope.$on('$destroy', deregister);
 
     // ***
     // Methods
     // ***
 
-    // There is no way to make the slidebox stretch to a large enough size
-    // when its children are all position: absolute elements.
-    // We just make it so the slidebox is *always* as large as its offsetParent.
-    function repositionSlideBox() {
-      element.css({
-        width: (element[0].offsetParent || element[0].parentNode || {}).offsetWidth + 'px',
-        height: (element[0].offsetParent || element[0].parentNode || {}).offsetHeight + 'px'
+    function listenForSlide() {
+      element.on('$ionSlideBox.slide', function(ev, index) {
+        scope.onSlideStart({
+          $slideIndex: index
+        });
+        $timeout(angular.noop);
       });
     }
 
     function watchSelected() {
-      scope.$watch('selectedIndex', function selectedAttrWatchAction(newIndex) {
-        if (slideBoxCtrl.isInRange(newIndex)) {
-          scope.onSlideChanged({
-            //DEPRECATED $index
-            $index: newIndex,
-            $slideIndex: newIndex
-          });
-          slideBoxCtrl.select(newIndex);
+      scope.$watch('selected', function(index) {
+        if (slideBoxCtrl.selected() !== index) {
+          slideBoxCtrl.select(index);
         }
       });
     }

@@ -1,6 +1,6 @@
 /**
  * @private
- * DEPRECATED
+ * DEPRECATED, as of v1.0.0-beta14 -------
  */
 IonicModule
 .factory('$ionicViewService', ['$ionicHistory', '$log', function($ionicHistory, $log) {
@@ -20,7 +20,7 @@ IonicModule
     clearHistory: 'clearHistory'
   };
 
-  forEach(methodsMap, function(newMethod, oldMethod){
+  forEach(methodsMap, function(newMethod, oldMethod) {
     methodsMap[oldMethod] = function() {
       warn('.' + oldMethod, '.' + newMethod);
       return $ionicHistory[newMethod].apply(this, arguments);

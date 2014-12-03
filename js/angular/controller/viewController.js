@@ -4,16 +4,18 @@ IonicModule
   '$element',
   '$attrs',
   '$compile',
+  '$rootScope',
   '$ionicViewSwitcher',
-function($scope, $element, $attrs, $compile, $ionicViewSwitcher) {
+function($scope, $element, $attrs, $compile, $rootScope, $ionicViewSwitcher) {
   var self = this;
   var navElementHtml = {};
   var navViewCtrl;
   var navBarDelegateHandle;
   var hasViewHeaderBar;
   var deregisters = [];
+  var viewTitle;
 
-  var deregIonNavBarInit = $scope.$on('ionNavBar.init', function(ev, delegateHandle){
+  var deregIonNavBarInit = $scope.$on('ionNavBar.init', function(ev, delegateHandle) {
     // this view has its own ion-nav-bar, remember the navBarDelegateHandle for this view
     ev.stopPropagation();
     navBarDelegateHandle = delegateHandle;
@@ -41,11 +43,12 @@ function($scope, $element, $attrs, $compile, $ionicViewSwitcher) {
     if (transData && !transData.viewNotified) {
       transData.viewNotified = true;
 
-      var viewTitle = $attrs.viewTitle || $attrs.title;
+      if (!$rootScope.$$phase) $scope.$digest();
+      viewTitle = isDefined($attrs.viewTitle) ? $attrs.viewTitle : $attrs.title;
 
-      var buttons = {};
+      var navBarItems = {};
       for (var n in navElementHtml) {
-        buttons[n] = generateButton(navElementHtml[n]);
+        navBarItems[n] = generateNavBarItem(navElementHtml[n]);
       }
 
       navViewCtrl.beforeEnter({
@@ -56,7 +59,7 @@ function($scope, $element, $attrs, $compile, $ionicViewSwitcher) {
         shouldAnimate: transData.shouldAnimate,
         enableBack: transData.enableBack,
         showBack: !attrTrue('hideBackButton'),
-        buttons: buttons,
+        navBarItems: navBarItems,
         navBarDelegate: navBarDelegateHandle || null,
         showNavBar: !attrTrue('hideNavBar'),
         hasHeaderBar: !!hasViewHeaderBar
@@ -73,9 +76,8 @@ function($scope, $element, $attrs, $compile, $ionicViewSwitcher) {
     // but also deregister the observe before it leaves
     var viewTitleAttr = isDefined($attrs.viewTitle) && 'viewTitle' || isDefined($attrs.title) && 'title';
     if (viewTitleAttr) {
-      deregisters.push($attrs.$observe(viewTitleAttr, function(val) {
-        navViewCtrl.title(val);
-      }));
+      titleUpdate($attrs[viewTitleAttr]);
+      deregisters.push($attrs.$observe(viewTitleAttr, titleUpdate));
     }
 
     if (isDefined($attrs.hideBackButton)) {
@@ -92,6 +94,14 @@ function($scope, $element, $attrs, $compile, $ionicViewSwitcher) {
   }
 
 
+  function titleUpdate(newTitle) {
+    if (isDefined(newTitle) && newTitle !== viewTitle) {
+      viewTitle = newTitle;
+      navViewCtrl.title(viewTitle);
+    }
+  }
+
+
   function deregisterFns() {
     // remove all existing $attrs.$observe's
     for (var x = 0; x < deregisters.length; x++) {
@@ -101,7 +111,7 @@ function($scope, $element, $attrs, $compile, $ionicViewSwitcher) {
   }
 
 
-  function generateButton(html) {
+  function generateNavBarItem(html) {
     if (html) {
       // every time a view enters we need to recreate its view buttons if they exist
       return $compile(html)($scope.$new());
@@ -119,4 +129,3 @@ function($scope, $element, $attrs, $compile, $ionicViewSwitcher) {
   };
 
 }]);
-
