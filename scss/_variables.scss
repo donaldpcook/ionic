@@ -162,6 +162,10 @@ $bar-padding-portrait:            5px !default;
 $bar-padding-landscape:           5px !default;
 $bar-transparency:                1 !default;
 
+$bar-footer-height:               $bar-height !default;
+$bar-subheader-height:            $bar-height !default;
+$bar-subfooter-height:            $bar-height !default;
+
 $bar-light-bg:                    rgba($button-light-bg, $bar-transparency) !default;
 $bar-light-text:                  $button-light-text !default;
 $bar-light-border:                $button-light-border !default;
@@ -228,7 +232,7 @@ $bar-default-active-border:       $bar-light-active-border !default;
 
 $tabs-height:                     49px !default;
 $tabs-text-font-size:             14px !default;
-$tabs-text-font-size-side-icon:   12px !default;
+$tabs-text-font-size-side-icon:   10px !default;
 $tabs-icon-size:                  32px !default;
 $tabs-badge-padding:              1px 6px !default;
 $tabs-badge-font-size:            12px !default;
@@ -275,8 +279,9 @@ $tabs-default-text:               $tabs-stable-text !default;
 
 $tab-item-max-width:              150px !default;
 
+$tabs-off-opacity:                0.4 !default;
+$tabs-striped-off-opacity:        $tabs-off-opacity !default;
 $tabs-striped-off-color: #000;
-$tabs-striped-off-opacity: 0.4;
 $tabs-striped-border-width: 2px;
 
 
@@ -373,6 +378,10 @@ $item-default-active-border:      $item-light-active-border !default;
 
 $item-edit-transition-duration:   250ms !default;
 $item-edit-transition-function:   ease-in-out !default;
+
+$item-remove-transition-duration:   300ms !default;
+$item-remove-transition-function:   ease-in !default;
+$item-remove-descendents-transition-function:  cubic-bezier(.25,.81,.24,1) !default;
 
 $item-left-edit-left:             8px !default;  // item's left side edit's "left" property
 

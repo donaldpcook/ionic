@@ -103,6 +103,28 @@ describe('Ionic nav-view', function() {
     template: '<ion-view>ionViewCacheFalsePropertyState</ion-view>',
     cache: false
   },
+  rootView1State = {
+    views: {
+      'root': {
+        template: '<ion-view>rootView1State</ion-view>'
+      }
+    }
+  },
+  rootView2State = {
+    views: {
+      'root': {
+        template: '<ion-view>rootView2State</ion-view>'
+      }
+    }
+  },
+  rootView1NoCacheState = {
+    cache: 'false',
+    views: {
+      'root': {
+        template: '<ion-view>rootView1NoCacheState</ion-view>'
+      }
+    }
+  },
   tabAbstractState = {
     abstract: true,
     views: {
@@ -174,7 +196,10 @@ describe('Ionic nav-view', function() {
       .state('tabAbstract.tab1page1', tab1page1State)
       .state('tabAbstract.tab2page1', tab2page1State)
       .state('tabAbstract.tab3page1', tab3page1State)
-      .state('tabAbstract.tab3page2', tab3page2NoCacheState);
+      .state('tabAbstract.tab3page2', tab3page2NoCacheState)
+      .state('rootView1', rootView1State)
+      .state('rootView2', rootView2State)
+      .state('rootView1NoCache', rootView1NoCacheState);
   }));
 
   beforeEach(inject(function(_$compile_, $ionicConfig, $rootScope) {
@@ -540,6 +565,11 @@ describe('Ionic nav-view', function() {
   it('should not cache ion-nav-views that were forward when moving back', inject(function ($state, $q, $timeout, $compile, $ionicConfig) {
     elem.append($compile('<div><ion-nav-view></ion-nav-view></div>')(scope));
 
+    var unloaded;
+    scope.$on('$ionicView.unloaded', function(ev, d){
+      unloaded = d;
+    });
+
     $ionicConfig.views.maxCache(2);
 
     $state.go(page1State);
@@ -556,26 +586,32 @@ describe('Ionic nav-view', function() {
     $q.flush();
     $timeout.flush();
     expect(elem.find('ion-nav-view').find('div').length).toBe(3);
+    expect(unloaded).toBeUndefined();
 
     $state.go(page4State);
     $q.flush();
     $timeout.flush();
     expect(elem.find('ion-nav-view').find('div').length).toBe(3);
+    expect(unloaded.historyId).toBe('root');
+    expect(unloaded.stateName).toBe('page1');
 
     $state.go(page3State);
     $q.flush();
     $timeout.flush();
     expect(elem.find('ion-nav-view').find('div').length).toBe(2);
+    expect(unloaded.stateName).toBe('page4');
 
     $state.go(page2State);
     $q.flush();
     $timeout.flush();
     expect(elem.find('ion-nav-view').find('div').length).toBe(1);
+    expect(unloaded.stateName).toBe('page3');
 
     $state.go(page1State);
     $q.flush();
     $timeout.flush();
     expect(elem.find('ion-nav-view').find('div').length).toBe(1);
+    expect(unloaded.stateName).toBe('page2');
   }));
 
   it('should cache ion-nav-views that were forward when moving back with $ionicConfig.cacheForwardViews=true', inject(function ($state, $q, $timeout, $compile, $ionicConfig) {
@@ -845,6 +881,11 @@ describe('Ionic nav-view', function() {
   it('should clear ion-nav-view cache', inject(function ($state, $q, $timeout, $compile, $ionicHistory) {
     elem.append($compile('<div><ion-nav-view></ion-nav-view></div>')(scope));
 
+    var clearCacheCollection = [];
+    scope.$on('$ionicView.unloaded', function(ev, d){
+      clearCacheCollection.push(d);
+    });
+
     $state.go(page1State);
     $q.flush();
     $timeout.flush();
@@ -869,7 +910,13 @@ describe('Ionic nav-view', function() {
     expect(divs.eq(2).attr('nav-view')).toBe('active');
     expect(divs.eq(2).text()).toBe('page3');
 
+    expect(clearCacheCollection.length).toBe(0);
     $ionicHistory.clearCache();
+
+    expect(clearCacheCollection.length).toBe(2);
+    expect(clearCacheCollection[0].stateName).toBe('page1');
+    expect(clearCacheCollection[1].stateName).toBe('page2');
+    clearCacheCollection = [];
 
     var divs = elem.find('ion-nav-view').find('div');
     expect(divs.length).toBe(1);
@@ -878,6 +925,7 @@ describe('Ionic nav-view', function() {
     expect(divs.eq(0).text()).toBe('page3');
 
     $ionicHistory.clearCache();
+    expect(clearCacheCollection.length).toBe(0);
 
     var divs = elem.find('ion-nav-view').find('div');
     expect(divs.length).toBe(1);
@@ -894,6 +942,7 @@ describe('Ionic nav-view', function() {
 
     expect(divs.eq(0).attr('nav-view')).toBe('active');
     expect(divs.eq(0).text()).toBe('page2');
+    expect(clearCacheCollection[0].stateName).toBe('page3');
   }));
 
   it('should create and cache tabs', inject(function ($state, $q, $timeout, $compile, $ionicConfig) {
@@ -930,6 +979,101 @@ describe('Ionic nav-view', function() {
     expect(tab1Ele.getAttribute('nav-view')).toBe('active');
     expect(tab2Ele.getAttribute('nav-view')).toBe('cached');
     expect(tab3Ele.getAttribute('nav-view')).toBe('cached');
+  }));
+
+  it('should not cache ion-views when going between history and its the first load, stateParam cache=false', inject(function ($state, $q, $timeout, $compile, $ionicConfig) {
+    elem.append($compile('<ion-nav-view name="root"></ion-nav-view>')(scope));
+
+    $state.go(rootView1NoCacheState);
+    $q.flush();
+    $timeout.flush();
+    expect(elem.find('ion-nav-view').find('ion-view').length).toBe(1);
+    expect(elem.find('ion-nav-view').find('ion-view').eq(0).text()).toBe('rootView1NoCacheState');
+
+    $state.go(tab1page1State);
+    $q.flush();
+    $timeout.flush();
+
+    var tab1Ele = elem[0].querySelector('ion-nav-view[name="tab1"]');
+    expect(tab1Ele.getAttribute('nav-view')).toBe('active');
+
+    expect(elem[0].querySelector('ion-nav-view[name="root"]').children.length).toBe(1);
+
+    $state.go(tab2page1State);
+    $q.flush();
+    $timeout.flush();
+
+    var tab2Ele = elem[0].querySelector('ion-nav-view[name="tab2"]');
+    expect(tab2Ele.getAttribute('nav-view')).toBe('active');
+
+    tab1Ele = elem[0].querySelector('ion-nav-view[name="tab1"]');
+    expect(tab1Ele.getAttribute('nav-view')).toBe('cached');
+  }));
+
+  it('should not cache ion-views when going between history and its the first load, maxCache(0)', inject(function ($state, $q, $timeout, $compile, $ionicConfig) {
+    elem.append($compile('<ion-nav-view name="root"></ion-nav-view>')(scope));
+
+    $ionicConfig.views.maxCache(0);
+
+    $state.go(rootView1State);
+    $q.flush();
+    $timeout.flush();
+    expect(elem.find('ion-nav-view').find('ion-view').length).toBe(1);
+    expect(elem.find('ion-nav-view').find('ion-view').eq(0).text()).toBe('rootView1State');
+
+    $state.go(tab1page1State);
+    $q.flush();
+    $timeout.flush();
+
+    var tab1Ele = elem[0].querySelector('ion-nav-view[name="tab1"]');
+    expect(tab1Ele.getAttribute('nav-view')).toBe('active');
+    expect(elem[0].querySelector('ion-nav-view[name="root"]').children.length).toBe(1);
+
+    $state.go(tab2page1State);
+    $q.flush();
+    $timeout.flush();
+
+    var tab2Ele = elem[0].querySelector('ion-nav-view[name="tab2"]');
+    expect(tab2Ele.getAttribute('nav-view')).toBe('active');
+
+    tab1Ele = elem[0].querySelector('ion-nav-view[name="tab1"]');
+    expect(tab1Ele).toBe(null);
+  }));
+
+  it('should not cache any views when going root1 to tabs to root 2', inject(function ($state, $q, $timeout, $compile, $ionicConfig) {
+    elem.append($compile('<ion-nav-view name="root"></ion-nav-view>')(scope));
+
+    $ionicConfig.views.maxCache(0);
+
+    $state.go(rootView1State);
+    $q.flush();
+    $timeout.flush();
+    expect(elem[0].querySelector('ion-nav-view[name="root"]').children.length).toBe(1);
+
+    $state.go(tab1page1State);
+    $q.flush();
+    $timeout.flush();
+    expect(elem[0].querySelector('ion-nav-view[name="root"]').children.length).toBe(1);
+
+    $state.go(rootView2State);
+    $q.flush();
+    $timeout.flush();
+    expect(elem[0].querySelector('ion-nav-view[name="root"]').children.length).toBe(1);
+
+    $state.go(rootView1State);
+    $q.flush();
+    $timeout.flush();
+    expect(elem[0].querySelector('ion-nav-view[name="root"]').children.length).toBe(1);
+
+    $state.go(tab1page1State);
+    $q.flush();
+    $timeout.flush();
+    expect(elem[0].querySelector('ion-nav-view[name="root"]').children.length).toBe(1);
+
+    $state.go(rootView2State);
+    $q.flush();
+    $timeout.flush();
+    expect(elem[0].querySelector('ion-nav-view[name="root"]').children.length).toBe(1);
   }));
 
   it('should not cache a tab with cache false state property', inject(function ($state, $q, $timeout, $compile, $ionicConfig) {

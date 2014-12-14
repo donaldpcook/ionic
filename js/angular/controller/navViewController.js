@@ -13,9 +13,9 @@ function($scope, $element, $attrs, $compile, $controller, $ionicNavBarDelegate, 
 
   var DATA_ELE_IDENTIFIER = '$eleId';
   var DATA_DESTROY_ELE = '$destroyEle';
+  var DATA_NO_CACHE = '$noCache';
   var VIEW_STATUS_ACTIVE = 'active';
   var VIEW_STATUS_CACHED = 'cached';
-  var HISTORY_AFTER_ROOT = 'after-root';
 
   var self = this;
   var direction;
@@ -132,30 +132,23 @@ function($scope, $element, $attrs, $compile, $controller, $ionicNavBarDelegate, 
 
   self.transitionEnd = function() {
     var viewElements = $element.children();
-    var viewElementsLength = viewElements.length;
-    var x, viewElement;
-    var isHistoryRoot;
+    var x, l, viewElement;
 
-    for (x = 0; x < viewElementsLength; x++) {
+    for (x = 0, l = viewElements.length; x < l; x++) {
       viewElement = viewElements.eq(x);
 
       if (viewElement.data(DATA_ELE_IDENTIFIER) === activeEleId) {
         // this is the active element
         navViewAttr(viewElement, VIEW_STATUS_ACTIVE);
-        isHistoryRoot = $ionicViewSwitcher.isHistoryRoot(viewElement);
 
-      } else if (navViewAttr(viewElement) === 'leaving' || navViewAttr(viewElement) === VIEW_STATUS_ACTIVE) {
-        // this is a leaving element or was the former active element
-        navViewAttr(viewElement, VIEW_STATUS_CACHED);
-      }
-    }
-
-    if (isHistoryRoot) {
-      for (x = 0; x < viewElementsLength; x++) {
-        viewElement = viewElements.eq(x);
-
-        if ($ionicViewSwitcher.isHistoryRoot(viewElement) && navViewAttr(viewElement) !== VIEW_STATUS_ACTIVE) {
-          $ionicViewSwitcher.historyCursorAttr(viewElement, HISTORY_AFTER_ROOT);
+      } else if (navViewAttr(viewElement) === 'leaving' || navViewAttr(viewElement) === VIEW_STATUS_ACTIVE || navViewAttr(viewElement) === VIEW_STATUS_CACHED) {
+        // this is a leaving element or was the former active element, or is an cached element
+        if (viewElement.data(DATA_DESTROY_ELE) || viewElement.data(DATA_NO_CACHE)) {
+          // this element shouldn't stay cached
+          $ionicViewSwitcher.destroyViewEle(viewElement);
+        } else {
+          // keep in the DOM, mark as cached
+          navViewAttr(viewElement, VIEW_STATUS_CACHED);
         }
       }
     }

@@ -182,6 +182,7 @@
       }
       var parent = scope.$parent;
       scope.$$disconnected = true;
+      scope.$broadcast('$ionic.disconnectScope');
       // See Scope.$destroy
       if (parent.$$childHead === scope) {
         parent.$$childHead = scope.$$nextSibling;
@@ -209,6 +210,7 @@
       }
       var parent = scope.$parent;
       scope.$$disconnected = false;
+      scope.$broadcast('$ionic.reconnectScope');
       // See Scope.$new for this logic...
       scope.$$prevSibling = parent.$$childTail;
       if (parent.$$childHead) {
@@ -217,6 +219,15 @@
       } else {
         parent.$$childHead = parent.$$childTail = scope;
       }
+    },
+
+    isScopeDisconnected: function(scope) {
+      var climbScope = scope;
+      while (climbScope) {
+        if (climbScope.$$disconnected) return true;
+        climbScope = climbScope.$parent;
+      }
+      return false;
     }
   };
 

@@ -3,16 +3,17 @@
  * @name $ionicHistory
  * @module ionic
  * @description
- * $ionicHistory is what keeps track of an app's views as the user navigates. Like browser,
- * an Ionic app is able to know what the previous view was, the current view, and what the
- * forward view was (if there was one). However, a typical web browser only keeps track of one
+ * $ionicHistory keeps track of views as the user navigates through an app. Similar to the way a
+ * browser behaves, an Ionic app is able to keep track of the previous view, the current view, and
+ * the forward view (if there is one).  However, a typical web browser only keeps track of one
  * history stack in a linear fashion.
  *
- * Ionic's `$ionicHistory` is able to keep track of multiple histories, and persist where the
- * user is as they navigate between different views, and different histories. For example, an
- * app with tabs has it's own history stack for each tab. This meaning you can navigate a few
- * views in Tab A, then navigate a few in Tab B, and when you return to Tab A, the existing
- * stack is maintained.
+ * Unlike a traditional browser environment, apps and webapps have parallel independent histories,
+ * such as with tabs. Should a user navigate few pages deep on one tab, and then switch to a new
+ * tab and back, the back button relates not to the previous tab, but to the previous pages
+ * visited within _that_ tab.
+ *
+ * `$ionicHistory` facilitates this parallel history architecture.
  */
 
 IonicModule
@@ -284,7 +285,7 @@ function($rootScope, $state, $location, $window, $timeout, $ionicViewSwitcher, $
 
         // create an element from the viewLocals template
         ele = $ionicViewSwitcher.createViewEle(viewLocals);
-        if (this.isAbstractEle(ele)) {
+        if (this.isAbstractEle(ele, viewLocals)) {
           console.log('VIEW', 'abstractView', DIRECTION_NONE, viewHistory.currentView);
           return {
             action: 'abstractView',
@@ -482,9 +483,12 @@ function($rootScope, $state, $location, $window, $timeout, $ionicViewSwitcher, $
      * @description Returns the view that was before the current view in the history stack.
      * If the user navigated from View A to View B, then View A would be the back view, and
      * View B would be the current view.
-     * @returns {string} Returns the back view.
+     * @returns {object} Returns the back view.
      */
-    backView: function() {
+    backView: function(view) {
+      if (arguments.length) {
+        viewHistory.backView = view;
+      }
       return viewHistory.backView;
     },
 
@@ -507,9 +511,12 @@ function($rootScope, $state, $location, $window, $timeout, $ionicViewSwitcher, $
      * A forward view would exist if the user navigated from View A to View B, then
      * navigated back to View A. At this point then View B would be the forward view, and View
      * A would be the current view.
-     * @returns {string} Returns the back view.
+     * @returns {object} Returns the forward view.
      */
-    forwardView: function() {
+    forwardView: function(view) {
+      if (arguments.length) {
+        viewHistory.forwardView = view;
+      }
       return viewHistory.forwardView;
     },
 
@@ -609,10 +616,10 @@ function($rootScope, $state, $location, $window, $timeout, $ionicViewSwitcher, $
      * @name $ionicHistory#nextViewOptions
      * @description Sets options for the next view. This method can be useful to override
      * certain view/transition defaults right before a view transition happens. For example,
-     * the {@link ionic.directive:menuClose} directive uses this methond internally to ensure
-     * an animated view transition does not happen when a menu is closed, and also sets that
-     * the next view should become this root of its history stack. After the next view has
-     * entered then these options are set back to null.
+     * the {@link ionic.directive:menuClose} directive uses this method internally to ensure
+     * an animated view transition does not happen when a side menu is open, and also sets
+     * the next view as the root of its history stack. After the transition these options
+     * are set back to null.
      *
      * Available options:
      *
@@ -645,7 +652,10 @@ function($rootScope, $state, $location, $window, $timeout, $ionicViewSwitcher, $
       return nextViewOptions;
     },
 
-    isAbstractEle: function(ele) {
+    isAbstractEle: function(ele, viewLocals) {
+      if (viewLocals && viewLocals.$$state && viewLocals.$$state.self.abstract) {
+        return true;
+      }
       return !!(ele && (isAbstractTag(ele) || isAbstractTag(ele.children())));
     },
 
@@ -654,13 +664,37 @@ function($rootScope, $state, $location, $window, $timeout, $ionicViewSwitcher, $
 
       var climbScope = scope;
       var currentHistoryId = this.currentHistoryId();
+      var foundHistoryId;
+
       while (climbScope) {
         if (climbScope.$$disconnected) {
           return false;
         }
-        if (currentHistoryId && currentHistoryId == climbScope.$historyId) {
-          return true;
+
+        if (!foundHistoryId && climbScope.hasOwnProperty('$historyId')) {
+          foundHistoryId = true;
         }
+
+        if (currentHistoryId) {
+          if (climbScope.hasOwnProperty('$historyId') && currentHistoryId == climbScope.$historyId) {
+            return true;
+          }
+          if (climbScope.hasOwnProperty('$activeHistoryId')) {
+            if (currentHistoryId == climbScope.$activeHistoryId) {
+              if (climbScope.hasOwnProperty('$historyId')) {
+                return true;
+              }
+              if (!foundHistoryId) {
+                return true;
+              }
+            }
+          }
+        }
+
+        if (foundHistoryId && climbScope.hasOwnProperty('$activeHistoryId')) {
+          foundHistoryId = false;
+        }
+
         climbScope = climbScope.$parent;
       }
 
@@ -685,7 +719,7 @@ function($rootScope, $state, $location, $window, $timeout, $ionicViewSwitcher, $
 function($rootScope, $state, $location, $document, $ionicPlatform, $ionicHistory) {
 
   // always reset the keyboard state when change stage
-  $rootScope.$on('$stateChangeStart', function() {
+  $rootScope.$on('$ionicView.beforeEnter', function() {
     ionic.keyboard && ionic.keyboard.hide && ionic.keyboard.hide();
   });
 

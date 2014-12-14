@@ -39,7 +39,6 @@
     background-size: 100% 1px;
     background-repeat: no-repeat;
   }
-  pointer-events: auto;
 
   &.bar-clear {
     border: none;
@@ -144,6 +143,7 @@
     white-space: nowrap;
 
     font-size: $bar-title-font-size;
+    font-weight: $headings-font-weight;
 
     line-height: $bar-height;
 
@@ -209,13 +209,13 @@
       display: block;
       margin-right: 5px;
       padding: 0;
-      opacity: 0.8;
       white-space: nowrap;
+      font-weight: 400;
     }
 
     &.back-button.active,
     &.back-button.activated {
-      opacity: 1;
+      opacity: 0.2;
     }
   }
 
@@ -323,6 +323,7 @@
   border-bottom-width: 1px;
   &.has-tabs-top{
     border-bottom-width: 0px;
+    background-image: none;
   }
 }
 
@@ -332,6 +333,8 @@
   border-top-width: 1px;
   border-bottom-width: 0;
   background-position: top;
+
+  height: $bar-footer-height;
 
   &.item-input-inset {
     position: absolute;
@@ -346,10 +349,14 @@
 .bar-subheader {
   top: $bar-height;
   display: block;
+
+  height: $bar-subheader-height;
 }
 .bar-subfooter {
-  bottom: $bar-height;
+  bottom: $bar-footer-height;
   display: block;
+
+  height: $bar-subfooter-height;
 }
 
 .nav-bar-block {
@@ -357,7 +364,6 @@
   top: 0;
   right: 0;
   left: 0;
-  pointer-events: none;
   z-index: $z-index-bar;
 }
 
@@ -365,4 +371,3 @@
 .bar .buttons .hide {
   display: none;
 }
-

@@ -1,5 +1,12 @@
 (function(window, document, ionic) {
 
+  function getParameterByName(name) {
+    name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+    results = regex.exec(location.search);
+    return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+  }
+
   var IOS = 'ios';
   var ANDROID = 'android';
   var WINDOWS_PHONE = 'windowsphone';
@@ -208,6 +215,8 @@
     setPlatform: function(n) {
       if (typeof n != 'undefined' && n !== null && n.length) {
         platformName = n.toLowerCase();
+      } else if(getParameterByName('ionicplatform')) {
+        platformName = getParameterByName('ionicplatform');
       } else if (this.ua.indexOf('Android') > 0) {
         platformName = ANDROID;
       } else if (this.ua.indexOf('iPhone') > -1 || this.ua.indexOf('iPad') > -1 || this.ua.indexOf('iPod') > -1) {
@@ -222,7 +231,7 @@
     /**
      * @ngdoc method
      * @name ionic.Platform#version
-     * @returns {string} The version of the current device platform.
+     * @returns {number} The version of the current device platform.
      */
     version: function() {
       // singleton to get the platform version
